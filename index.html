@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VIDEOGAMES — World Card Game</title>
+  <style>
+    :root{
+      --bg:#ffffff; --text:#0f172a; --muted:#64748b; --line:#e2e8f0;
+      --blue:#2563eb; --red:#dc2626; --shadow: 0 10px 30px rgba(2,6,23,.08);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:16px;background:#fff}
+    .brand{display:flex;flex-direction:column;gap:2px}
+    .brand .t{font-weight:900;letter-spacing:.4px}
+    .brand .s{font-size:12px;color:var(--muted)}
+    .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:6px 10px;border-radius:999px;background:#fff}
+    .layout{display:grid;grid-template-columns: 1fr; gap:14px; margin-top:14px}
+    .mapCard{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:var(--shadow);position:relative; overflow:hidden;}
+    .mapHeader{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--line)}
+    .mapHeader .hint{font-size:12px;color:var(--muted)}
+    #mapWrap{position:relative; width:100%; height:420px; background:#fff;}
+    svg{width:100%;height:100%;display:block}
+    .deck{position:absolute; top:14px; width:200px;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:var(--shadow);padding:10px;}
+    .deck.left{left:14px}
+    .deck.right{right:14px}
+    .deckTitle{font-weight:900; font-size:12px; letter-spacing:.4px}
+    .deckTitle.you{color:var(--blue)}
+    .deckTitle.other{color:var(--red)}
+    .stack{margin-top:8px;height:70px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(180deg,#fff,#f8fafc);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--muted)}
+    .score{display:grid;grid-template-columns:1fr;gap:6px;margin-top:10px;font-size:12px;color:var(--muted)}
+    .score b{color:var(--text)}
+    .pot{position:absolute; left:50%; transform:translateX(-50%); bottom:14px;border:1px dashed var(--line); border-radius:14px; background:#fff;padding:8px 10px;font-size:12px;color:var(--muted)}
+    .ui{border:1px solid var(--line);border-radius:16px;background:#fff;box-shadow:var(--shadow);padding:14px}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media (max-width:900px){
+      #mapWrap{height:380px}
+      .deck{position:static; width:auto; box-shadow:none}
+      .mapHeader{flex-direction:column; align-items:flex-start; gap:6px}
+      .row{grid-template-columns:1fr}
+      .pot{position:static; transform:none; margin:10px 12px 12px}
+      .mapCard{padding-bottom:8px}
+    }
+    .card{border:1px solid var(--line);border-radius:16px;background:#fff;padding:12px}
+    .card h3{margin:0 0 6px 0; font-size:14px}
+    .countryName{font-size:18px;font-weight:900;margin:0 0 6px 0}
+    .meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+    .kv{display:grid;grid-template-columns:1fr auto;gap:6px;align-items:center;margin:6px 0}
+    .kv .k{font-size:12px;color:var(--muted)}
+    .kv .v{font-weight:800}
+    .choices{display:grid;gap:8px;margin-top:10px}
+    button{width:100%;text-align:left;cursor:pointer;border:1px solid var(--line);background:#fff;border-radius:12px;padding:10px 10px;transition:transform .05s ease, border-color .15s ease}
+    button:hover{border-color:#cbd5e1}
+    button:active{transform:translateY(1px)}
+    button[disabled]{opacity:.6; cursor:default}
+    .btnTitle{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+    .btnTitle b{font-size:13px}
+    .btnTitle span{font-size:12px;color:var(--muted)}
+    .status{margin-top:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:#f8fafc;font-size:13px;line-height:1.35}
+    .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .primary{background:var(--blue);border-color:var(--blue);color:#fff;font-weight:900;text-align:center}
+    .ghost{text-align:center}
+    .end{font-size:20px;font-weight:1000;letter-spacing:.3px;padding:14px;border-radius:16px;border:1px solid var(--line);background:#fff}
+    .loading{padding:12px;color:var(--muted);font-size:13px}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="t">VIDEOGAMES — World Card Game</div>
+      <div class="s">YOU vs SOMEONE ELSE — choose a category, win countries, color the map.</div>
+    </div>
+    <div class="pill" id="roundPill">Round 0</div>
+  </div>
+
+  <div class="layout">
+    <div class="mapCard">
+      <div class="mapHeader">
+        <div class="hint">Map has borders only (no labels). Blue = YOU. Red = SOMEONE ELSE.</div>
+      </div>
+
+      <div id="mapWrap">
+        <div class="deck left">
+          <div class="deckTitle you">YOU</div>
+          <div class="stack" id="youStack">DECK</div>
+          <div class="score">
+            <div>Countries: <b id="youCountries">0</b></div>
+            <div>Continents completed: <b id="youContinents">0</b></div>
+          </div>
+        </div>
+
+        <div class="deck right">
+          <div class="deckTitle other">SOMEONE ELSE</div>
+          <div class="stack" id="cpuStack">DECK</div>
+          <div class="score">
+            <div>Countries: <b id="cpuCountries">0</b></div>
+            <div>Continents completed: <b id="cpuContinents">0</b></div>
+          </div>
+        </div>
+
+        <svg id="mapSvg" viewBox="0 0 1000 500" aria-label="World map"></svg>
+
+        <div class="pot">Pot: <b id="potCount">0</b> cards</div>
+      </div>
+    </div>
+
+    <div class="ui">
+      <div id="loading" class="loading">Loading local map + stats…</div>
+
+      <div class="row" id="gameRow" style="display:none">
+        <div class="card" id="youCard"></div>
+        <div class="card" id="cpuCard"></div>
+      </div>
+
+      <div id="status" class="status" style="display:none"></div>
+
+      <div class="actions">
+        <button class="primary" id="startBtn" disabled>Start game</button>
+        <button class="ghost" id="resetBtn" disabled>Reset</button>
+      </div>
+
+      <div class="status" style="margin-top:12px">
+        Tie rule: if values are equal, both cards go to the <b>pot</b>. The next winner takes <b>all</b> pot cards too.
+      </div>
+
+      <div class="status" style="margin-top:12px">
+        This version uses <b>offline data</b> stored in <code>data/map.geojson</code> and <code>data/stats.json</code>.
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const CATEGORIES = [
+  {key:"area", label:"Area (km²)"},
+  {key:"population", label:"Population"},
+  {key:"highest", label:"Highest point (m)"},
+  {key:"neighbors", label:"Neighboring countries"}
+];
+
+const state = {
+  round: 0,
+  youDeck: [],
+  cpuDeck: [],
+  pot: [],
+  selectedCategory: null,
+  mapPaths: new Map(),
+  countryData: new Map(),
+  continentsMap: new Map(),
+  gameOver: false
+};
+
+const el = (id) => document.getElementById(id);
+const svg = document.getElementById("mapSvg");
+
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr;
+}
+
+function fmtInt(n){
+  if(n === null || n === undefined || Number.isNaN(n)) return "N/A";
+  return Math.round(n).toLocaleString("en-US");
+}
+
+function projectLonLat(lon, lat){
+  const x = (lon + 180) / 360 * 1000;
+  const y = (90 - lat) / 180 * 500;
+  return [x, y];
+}
+
+function coordsToPath(coords){
+  let d = "";
+  for(let i=0;i<coords.length;i++){
+    const [lon, lat] = coords[i];
+    const [x, y] = projectLonLat(lon, lat);
+    d += (i===0 ? `M ${x.toFixed(2)} ${y.toFixed(2)}` : ` L ${x.toFixed(2)} ${y.toFixed(2)}`);
+  }
+  d += " Z";
+  return d;
+}
+
+function featureToPath(feature){
+  const geom = feature.geometry;
+  if(!geom) return "";
+  const type = geom.type;
+  const coords = geom.coordinates;
+  let d = "";
+  if(type === "Polygon"){
+    for(const ring of coords) d += coordsToPath(ring);
+  } else if(type === "MultiPolygon"){
+    for(const poly of coords) for(const ring of poly) d += coordsToPath(ring);
+  }
+  return d;
+}
+
+async function loadLocalData(){
+  const [mapRes, statsRes] = await Promise.all([
+    fetch("./data/map.geojson"),
+    fetch("./data/stats.json")
+  ]);
+  if(!mapRes.ok) throw new Error("map.geojson not found");
+  if(!statsRes.ok) throw new Error("stats.json not found");
+
+  const geo = await mapRes.json();
+  const stats = await statsRes.json();
+
+  for(const c of stats.countries){
+    state.countryData.set(c.iso3, c);
+  }
+  for(const [cont, list] of Object.entries(stats.continents)){
+    state.continentsMap.set(cont, new Set(list));
+  }
+
+  svg.innerHTML = "";
+  for(const f of geo.features){
+    const iso3 = f.properties?.ISO_A3 || f.properties?.iso3;
+    const d = featureToPath(f);
+    if(!d || !iso3) continue;
+
+    const path = document.createElementNS("http://www.w3.org/2000/svg","path");
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "#ffffff");
+    path.setAttribute("stroke", "#94a3b8");
+    path.setAttribute("stroke-width", "0.7");
+    path.setAttribute("vector-effect","non-scaling-stroke");
+    path.setAttribute("data-iso3", iso3);
+    state.mapPaths.set(iso3, path);
+    svg.appendChild(path);
+  }
+
+  return stats.iso3List;
+}
+
+function continentCompletedCount(deck){
+  const owned = new Set(deck.map(c=>c.iso3));
+  let count = 0;
+  for(const [cont, set] of state.continentsMap.entries()){
+    let all = true;
+    for(const iso3 of set){
+      if(!owned.has(iso3)){ all = false; break; }
+    }
+    if(all) count++;
+  }
+  return count;
+}
+
+function updateScores(){
+  el("youCountries").textContent = state.youDeck.length;
+  el("cpuCountries").textContent = state.cpuDeck.length;
+  el("youContinents").textContent = continentCompletedCount(state.youDeck);
+  el("cpuContinents").textContent = continentCompletedCount(state.cpuDeck);
+  el("potCount").textContent = state.pot.length;
+  el("roundPill").textContent = `Round ${state.round}`;
+  el("youStack").textContent = `${state.youDeck.length} cards`;
+  el("cpuStack").textContent = `${state.cpuDeck.length} cards`;
+}
+
+function updateMapColors(){
+  const owners = new Map();
+  for(const c of state.youDeck) owners.set(c.iso3, "you");
+  for(const c of state.cpuDeck) owners.set(c.iso3, "cpu");
+  for(const c of state.pot) owners.set(c.iso3, "pot");
+
+  for(const [iso3, path] of state.mapPaths.entries()){
+    const own = owners.get(iso3);
+    if(own === "you"){
+      path.setAttribute("fill","rgba(37,99,235,.22)");
+      path.setAttribute("stroke","rgba(37,99,235,.55)");
+    } else if(own === "cpu"){
+      path.setAttribute("fill","rgba(220,38,38,.18)");
+      path.setAttribute("stroke","rgba(220,38,38,.55)");
+    } else {
+      path.setAttribute("fill","#ffffff");
+      path.setAttribute("stroke","#94a3b8");
+    }
+  }
+}
+
+function setStatus(html){
+  el("status").style.display = "block";
+  el("status").innerHTML = html;
+}
+
+function cardHtml(card, isYou, showCategories, disabled){
+  const c = card;
+  const lines = [
+    `<div class="countryName">${c.name}</div>`,
+    `<div class="meta">ISO: ${c.iso3} • Continent: ${c.continent || "Unknown"}</div>`
+  ];
+  const kv = (label, val) => `<div class="kv"><div class="k">${label}</div><div class="v">${val}</div></div>`;
+  lines.push(kv("Area (km²)", fmtInt(c.area)));
+  lines.push(kv("Population", fmtInt(c.population)));
+  lines.push(kv("Highest point (m)", fmtInt(c.highest)));
+  lines.push(kv("Neighboring countries", fmtInt(c.neighbors)));
+
+  let buttons = "";
+  if(showCategories){
+    buttons = `<div class="choices">` + CATEGORIES.map(cat=>{
+      return `
+        <button ${disabled ? "disabled":""} data-cat="${cat.key}">
+          <div class="btnTitle">
+            <b>${cat.label}</b>
+            <span>${fmtInt(c[cat.key])}</span>
+          </div>
+        </button>
+      `;
+    }).join("") + `</div>`;
+  }
+  return `<h3>${isYou ? "Your card" : "Opponent card"}</h3>` + lines.join("") + buttons;
+}
+
+function cardBackHtml(){
+  return `
+    <h3>Opponent card</h3>
+    <div class="countryName">Hidden</div>
+    <div class="meta">Choose a category on your card</div>
+    <div class="kv"><div class="k">Area (km²)</div><div class="v">?</div></div>
+    <div class="kv"><div class="k">Population</div><div class="v">?</div></div>
+    <div class="kv"><div class="k">Highest point (m)</div><div class="v">?</div></div>
+    <div class="kv"><div class="k">Neighboring countries</div><div class="v">?</div></div>
+  `;
+}
+
+function initDecks(iso3List){
+  const cards = iso3List.map(iso3 => state.countryData.get(iso3)).filter(Boolean);
+  shuffle(cards);
+  const half = Math.floor(cards.length/2);
+  state.youDeck = cards.slice(0, half);
+  state.cpuDeck = cards.slice(half);
+  state.pot = [];
+  state.round = 0;
+  state.selectedCategory = null;
+  state.gameOver = false;
+  updateScores();
+  updateMapColors();
+}
+
+function endGame(winner){
+  state.gameOver = true;
+  if(winner === "you"){
+    setStatus(`<div class="end" style="color:var(--blue)">YOU WIN. FOR NOW YOU KNOW THE WORLD</div>`);
+  } else {
+    setStatus(`<div class="end" style="color:var(--red)">NICE TRY, BUT YOU CAN DO IT BETTER!</div>`);
+  }
+}
+
+function nextRound(){
+  if(state.gameOver) return;
+
+  if(state.youDeck.length === 0) return endGame("cpu");
+  if(state.cpuDeck.length === 0) return endGame("you");
+
+  state.round += 1;
+  state.selectedCategory = null;
+
+  const youTop = state.youDeck[0];
+
+  el("youCard").innerHTML = cardHtml(youTop, true, true, false);
+  el("cpuCard").innerHTML = cardBackHtml();
+
+  document.querySelectorAll('#youCard button[data-cat]').forEach(btn=>{
+    btn.addEventListener("click", async () => {
+      const catKey = btn.getAttribute("data-cat");
+      await resolveRound(catKey);
+    });
+  });
+
+  setStatus(`Choose a category on your card to compare with the opponent.`);
+  updateScores();
+  updateMapColors();
+}
+
+function disableCategoryButtons(){
+  document.querySelectorAll('#youCard button[data-cat]').forEach(b=>b.disabled = true);
+}
+
+async function resolveRound(catKey){
+  if(state.gameOver) return;
+  if(state.selectedCategory) return;
+
+  state.selectedCategory = catKey;
+  disableCategoryButtons();
+
+  const youCard = state.youDeck.shift();
+  const cpuCard = state.cpuDeck.shift();
+
+  el("cpuCard").innerHTML = cardHtml(cpuCard, false, false, false);
+  setStatus(`Comparing <b>${CATEGORIES.find(c=>c.key===catKey).label}</b>…`);
+
+  await new Promise(r => setTimeout(r, 2000));
+
+  const av = (youCard[catKey] ?? -1);
+  const bv = (cpuCard[catKey] ?? -1);
+
+  if(Number(av) === Number(bv)){
+    state.pot.push(youCard, cpuCard);
+    el("cpuCard").innerHTML = cardBackHtml();
+    setStatus(`It’s a tie. Both cards go to the <b>pot</b>!`);
+  } else if(Number(av) > Number(bv)){
+    const won = [youCard, cpuCard, ...state.pot];
+    state.pot = [];
+    state.youDeck.push(...won);
+    setStatus(`<b style="color:var(--blue)">YOU win</b> this round and take ${won.length} card(s).`);
+  } else {
+    const won = [cpuCard, youCard, ...state.pot];
+    state.pot = [];
+    state.cpuDeck.push(...won);
+    setStatus(`<b style="color:var(--red)">SOMEONE ELSE wins</b> this round and takes ${won.length} card(s).`);
+  }
+
+  updateScores();
+  updateMapColors();
+
+  await new Promise(r => setTimeout(r, 900));
+  nextRound();
+}
+
+async function init(){
+  try{
+    const iso3List = await loadLocalData();
+
+    el("loading").style.display = "none";
+    el("gameRow").style.display = "grid";
+    el("status").style.display = "block";
+    el("startBtn").disabled = false;
+    el("resetBtn").disabled = false;
+
+    initDecks(iso3List);
+
+    setStatus("Press <b>Start game</b>.");
+
+    el("startBtn").onclick = () => { el("startBtn").disabled = true; nextRound(); };
+    el("resetBtn").onclick = () => {
+      initDecks(iso3List);
+      el("startBtn").disabled = false;
+      el("youCard").innerHTML = "";
+      el("cpuCard").innerHTML = "";
+      setStatus("Press <b>Start game</b>.");
+    };
+
+  }catch(err){
+    el("loading").innerHTML = "Offline data is missing. Please wait for GitHub Pages build to finish.<br/><br/><code>"+String(err)+"</code>";
+    console.error(err);
+  }
+}
+init();
+</script>
+</body>
+</html>
