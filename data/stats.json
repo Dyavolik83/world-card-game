@@ -32,7 +32,7 @@
     "SAU",
     "IRN",
     "PAK",
-    "PHI",
+    "PHL",
     "ARE",
     "USA",
     "CAN",
@@ -383,7 +383,7 @@
       "source_notes": "Wikipedia: List of elevation extremes by country (highest point elevation, meters)."
     },
     {
-      "iso3": "PHI",
+      "iso3": "PHL",
       "name": "Philippines",
       "continent": "Asia",
       "area": 300000,
@@ -701,7 +701,7 @@
       "SAU",
       "IRN",
       "PAK",
-      "PHI",
+      "PHL",
       "ARE"
     ],
     "North America": [
