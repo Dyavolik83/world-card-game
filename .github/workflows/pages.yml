@@ -21,13 +21,14 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-
-      - name: Build offline data
-        run: node build_data.mjs
+      - name: Prepare static site
+        run: |
+          mkdir -p dist/data
+          cp index.html dist/index.html
+          cp style.css dist/style.css
+          cp game.js dist/game.js
+          cp -r data/* dist/data/
+          touch dist/.nojekyll
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
