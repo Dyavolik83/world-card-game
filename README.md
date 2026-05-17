@@ -16,7 +16,7 @@ A simple browser game inspired by *The World Game* geography card game.
 ## Data
 - Country stats are stored offline in `data/stats.json`.
 - Highest point values are based on Wikipedia’s *List of elevation extremes by country*.
-- Map borders are loaded from Natural Earth (public domain) via the `natural-earth-vector` repository.
+- World map borders are loaded from `data/map.geojson` (offline).
 
 ## For school use
 This project was created for a school PYP Exhibition about videogames as learning and decision-making systems.
