@@ -25,11 +25,18 @@ const ISO3_LIST = [
   "AUS","NZL","PNG","FJI","VUT","WSM"
 ];
 
-const GEOJSON_URL = "https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson";
+// More stable world borders source (Natural Earth)
+const GEOJSON_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
 const WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql";
 
+// Identify the ISO3 code from different GeoJSON sources
+function featureIso3(f){
+  const p = f.properties || {};
+  // Natural Earth uses ADM0_A3 and ISO_A3
+  return p.ISO_A3 || p.ADM0_A3 || p.iso_a3 || p.adm0_a3 || null;
+}
+
 function buildSparqlForIso3(list){
-  // SPARQL expects plain quoted strings like "USA" (no backslashes)
   const values = list.map(c=>`"${c}"`).join(" ");
   return `
 SELECT ?iso3 ?countryLabel
@@ -68,11 +75,22 @@ async function fetchJsonWithRetry(url, opts={}, tries=4){
     }catch(e){
       lastErr = e;
       const delay = 800 * Math.pow(2,i);
-      console.log(`Retry in ${delay}ms…`, String(e).slice(0,120));
+      console.log(`Retry in ${delay}ms…`, String(e).slice(0,140));
       await new Promise(r=>setTimeout(r, delay));
     }
   }
   throw lastErr;
+}
+
+async function postSparqlJson(query){
+  // Use POST (more reliable than GET; avoids long URL issues)
+  const body = new URLSearchParams({ query });
+  const headers = {
+    "Accept": "application/sparql-results+json",
+    "Content-Type": "application/x-www-form-urlencoded; charset=UTF-8",
+    "User-Agent": "world-card-game/1.0 (https://github.com/Dyavolik83/world-card-game; mostovoyav83@gmail.com)"
+  };
+  return await fetchJsonWithRetry(WIKIDATA_ENDPOINT, { method: "POST", headers, body }, 5);
 }
 
 async function main(){
@@ -85,25 +103,21 @@ async function main(){
 
   console.log("Downloading GeoJSON…");
   const geo = await fetchJsonWithRetry(GEOJSON_URL, {
-    headers:{ "User-Agent":"world-card-game (school project)" }
+    headers:{ "User-Agent":"world-card-game/1.0 (mostovoyav83@gmail.com)" }
   });
-  const filtered = {
-    type: "FeatureCollection",
-    features: (geo.features || []).filter(f => ISO3_LIST.includes(f.properties?.ISO_A3))
-  };
+
+  const features = (geo.features || []).filter(f => {
+    const iso3 = featureIso3(f);
+    return iso3 && ISO3_LIST.includes(iso3);
+  });
+
+  const filtered = { type: "FeatureCollection", features };
   fs.writeFileSync(path.join(dataDir, "map.geojson"), JSON.stringify(filtered));
   console.log("Saved dist/data/map.geojson", filtered.features.length);
 
   console.log("Querying Wikidata…");
   const query = buildSparqlForIso3(ISO3_LIST);
-  const url = WIKIDATA_ENDPOINT + "?format=json&query=" + encodeURIComponent(query);
-
-  const wd = await fetchJsonWithRetry(url, {
-    headers: {
-      "Accept":"application/sparql-results+json",
-      "User-Agent":"world-card-game (school project)"
-    }
-  });
+  const wd = await postSparqlJson(query);
 
   const rows = wd.results.bindings;
   const countries = [];
