@@ -1,7 +1,7 @@
 // VIDEOGAMES — World Card Game
-// Loads local stats (data/stats.json) and downloads map borders from Natural Earth.
+// Loads local stats (data/stats.json) and local offline map borders (data/map.geojson).
 
-const MAP_URL = "https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson";
+const MAP_URL = "./data/map.geojson";
 
 const CATEGORIES = [
   { key: "area", label: "Area (km²)" },
@@ -70,9 +70,9 @@ function featureToPath(feature) {
 
 function getIso3FromFeature(f) {
   const p = f.properties || {};
-  // Natural Earth uses ISO_A3 and ADM0_A3. Some features have -99; try fallbacks.
+  // Our offline map uses ISO_A3 (preferred) with fallbacks.
   let iso3 = p.ISO_A3;
-  if (!iso3 || iso3 === "-99") iso3 = p.ADM0_A3 || p.SOV_A3 || p.ISO_A3_EH || p.ADM0_ISO;
+  if (!iso3 || iso3 === "-99") iso3 = p.ADM0_A3 || p.SOV_A3 || p.ISO_A3_EH || p.ADM0_ISO || p.iso3;
   return iso3;
 }
 
@@ -82,7 +82,7 @@ async function loadData() {
   const stats = await statsRes.json();
 
   const mapRes = await fetch(MAP_URL);
-  if (!mapRes.ok) throw new Error("Map download failed");
+  if (!mapRes.ok) throw new Error("map.geojson not found");
   const geo = await mapRes.json();
 
   for (const c of stats.countries) state.countryData.set(c.iso3, c);
@@ -189,14 +189,17 @@ function cardHtml(card, isYou, showCategories, disabled) {
 
   let buttons = "";
   if (showCategories) {
-    buttons = `<div class="choices">` +
-      CATEGORIES.map((cat) => {
-        return `
+    buttons =
+      `<div class="choices">` +
+      CATEGORIES
+        .map((cat) => {
+          return `
           <button ${disabled ? "disabled" : ""} data-cat="${cat.key}">
             <div class="btnTitle"><b>${cat.label}</b><span>${fmtInt(c[cat.key])}</span></div>
           </button>
         `;
-      }).join("") +
+        })
+        .join("") +
       `</div>`;
   }
 
