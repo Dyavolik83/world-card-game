@@ -29,7 +29,8 @@ const GEOJSON_URL = "https://raw.githubusercontent.com/datasets/geo-countries/ma
 const WIKIDATA_ENDPOINT = "https://query.wikidata.org/sparql";
 
 function buildSparqlForIso3(list){
-  const values = list.map(c=>`\"${c}\"`).join(" ");
+  // SPARQL expects plain quoted strings like "USA" (no backslashes)
+  const values = list.map(c=>`"${c}"`).join(" ");
   return `
 SELECT ?iso3 ?countryLabel
        (SAMPLE(?continentLabel) AS ?continentLabel)
@@ -41,14 +42,14 @@ WHERE {
   VALUES ?iso3 { ${values} }
   ?country wdt:P298 ?iso3 .
   OPTIONAL { ?country wdt:P30 ?continent . }
-  OPTIONAL { ?country wdt:P2046 ?area . }
-  OPTIONAL { ?country wdt:P1082 ?pop . }
-  OPTIONAL { ?country wdt:P47 ?neigh . }
+  OPTIONAL { ?country wdt:P2046 ?area . }      # area (km^2)
+  OPTIONAL { ?country wdt:P1082 ?pop . }       # population
+  OPTIONAL { ?country wdt:P47 ?neigh . }       # shares border with
   OPTIONAL {
     ?country wdt:P610 ?hp .
-    OPTIONAL { ?hp wdt:P2044 ?elev . }
+    OPTIONAL { ?hp wdt:P2044 ?elev . }         # elevation (m)
   }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language \"en\". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
 }
 GROUP BY ?iso3 ?countryLabel
 `;
@@ -83,7 +84,9 @@ async function main(){
   fs.copyFileSync(path.join(process.cwd(), "index.html"), path.join(distDir, "index.html"));
 
   console.log("Downloading GeoJSON…");
-  const geo = await fetchJsonWithRetry(GEOJSON_URL, {headers:{ "User-Agent":"world-card-game (school project)" }});
+  const geo = await fetchJsonWithRetry(GEOJSON_URL, {
+    headers:{ "User-Agent":"world-card-game (school project)" }
+  });
   const filtered = {
     type: "FeatureCollection",
     features: (geo.features || []).filter(f => ISO3_LIST.includes(f.properties?.ISO_A3))
@@ -120,6 +123,7 @@ async function main(){
     continents[cont].push(iso3);
   }
 
+  // Ensure all ISO3 present
   for(const iso3 of ISO3_LIST){
     if(!countries.find(c=>c.iso3===iso3)){
       const cont = "Unknown";
