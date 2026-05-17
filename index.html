@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VIDEOGAMES — World Card Game</title>
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="brand">
+      <div class="t">VIDEOGAMES — World Card Game</div>
+      <div class="s">YOU vs SOMEONE ELSE — choose a category, win countries, color the map.</div>
+    </div>
+    <div class="pill" id="roundPill">Round 0</div>
+  </div>
+
+  <div class="layout">
+    <div class="mapCard">
+      <div class="mapHeader">
+        <div class="hint">Map has borders only (no labels). Blue = YOU. Red = SOMEONE ELSE.</div>
+      </div>
+
+      <div id="mapWrap">
+        <div class="deck left">
+          <div class="deckTitle you">YOU</div>
+          <div class="stack" id="youStack">DECK</div>
+          <div class="score">
+            <div>Countries: <b id="youCountries">0</b></div>
+            <div>Continents completed: <b id="youContinents">0</b></div>
+          </div>
+        </div>
+
+        <div class="deck right">
+          <div class="deckTitle other">SOMEONE ELSE</div>
+          <div class="stack" id="cpuStack">DECK</div>
+          <div class="score">
+            <div>Countries: <b id="cpuCountries">0</b></div>
+            <div>Continents completed: <b id="cpuContinents">0</b></div>
+          </div>
+        </div>
+
+        <svg id="mapSvg" viewBox="0 0 1000 500" aria-label="World map"></svg>
+
+        <div class="pot">Pot: <b id="potCount">0</b> cards</div>
+      </div>
+    </div>
+
+    <div class="ui">
+      <div id="loading" class="loading">Loading map + stats…</div>
+
+      <div class="row" id="gameRow" style="display:none">
+        <div class="card" id="youCard"></div>
+        <div class="card" id="cpuCard"></div>
+      </div>
+
+      <div id="status" class="status" style="display:none"></div>
+
+      <div class="actions">
+        <button class="primary" id="startBtn" disabled>Start game</button>
+        <button class="ghost" id="resetBtn" disabled>Reset</button>
+      </div>
+
+      <div class="status" style="margin-top:12px">
+        Tie rule: if values are equal, both cards go to the <b>pot</b>. The next winner takes <b>all</b> pot cards too.
+      </div>
+
+      <div class="status" style="margin-top:12px">
+        This version uses <b>offline stats</b> (<code>data/stats.json</code>) and loads the <b>world map</b> from Natural Earth (public domain).
+      </div>
+    </div>
+  </div>
+</div>
+<script src="./game.js"></script>
+</body>
+</html>
