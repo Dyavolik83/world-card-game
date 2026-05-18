@@ -16,7 +16,7 @@ const state = {
   cpuDeck: [],
   pot: [],
   selectedCategory: null,
-  mapPaths: new Map(), // iso3 -> svg path
+  mapPaths: new Map(), // iso3 -> svg path (ONLY for countries in our deck)
   countryData: new Map(), // iso3 -> stats
   continentsMap: new Map(), // continent -> Set(iso3)
   gameOver: false,
@@ -38,6 +38,7 @@ function fmtInt(n) {
   return Math.round(n).toLocaleString("en-US");
 }
 
+// Simple equirectangular projection into viewBox 1000×500.
 function projectLonLat(lon, lat) {
   const x = ((lon + 180) / 360) * 1000;
   const y = ((90 - lat) / 180) * 500;
@@ -70,7 +71,7 @@ function featureToPath(feature) {
 
 function getIso3FromFeature(f) {
   const p = f.properties || {};
-  // Our offline map uses ISO_A3 (preferred) with fallbacks.
+  // Our maps usually have ISO_A3.
   let iso3 = p.ISO_A3;
   if (!iso3 || iso3 === "-99") iso3 = p.ADM0_A3 || p.SOV_A3 || p.ISO_A3_EH || p.ADM0_ISO || p.iso3;
   return iso3;
@@ -91,20 +92,30 @@ async function loadData() {
   const allowed = new Set(stats.iso3List);
 
   svg.innerHTML = "";
-  for (const f of geo.features) {
-    const iso3 = getIso3FromFeature(f);
-    if (!iso3 || !allowed.has(iso3)) continue;
+  state.mapPaths.clear();
+
+  // IMPORTANT:
+  // Draw ALL borders from the map file (so the world looks complete).
+  // Only countries in our deck are registered in mapPaths (so only they get colored).
+  for (const f of geo.features || []) {
     const d = featureToPath(f);
     if (!d) continue;
+
+    const iso3 = getIso3FromFeature(f);
 
     const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
     path.setAttribute("d", d);
     path.setAttribute("fill", "#ffffff");
-    path.setAttribute("stroke", "#94a3b8");
-    path.setAttribute("stroke-width", "0.7");
+    path.setAttribute("stroke", "#cbd5e1");
+    path.setAttribute("stroke-width", "0.5");
     path.setAttribute("vector-effect", "non-scaling-stroke");
-    path.setAttribute("data-iso3", iso3);
-    state.mapPaths.set(iso3, path);
+
+    if (iso3 && allowed.has(iso3)) {
+      path.setAttribute("data-iso3", iso3);
+      // Keep a reference only for deck countries.
+      if (!state.mapPaths.has(iso3)) state.mapPaths.set(iso3, path);
+    }
+
     svg.appendChild(path);
   }
 
@@ -153,7 +164,7 @@ function updateMapColors() {
       path.setAttribute("stroke", "rgba(220,38,38,.55)");
     } else {
       path.setAttribute("fill", "#ffffff");
-      path.setAttribute("stroke", "#94a3b8");
+      path.setAttribute("stroke", "#cbd5e1");
     }
   }
 }
